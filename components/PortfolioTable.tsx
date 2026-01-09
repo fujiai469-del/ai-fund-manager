@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 import type { Asset } from '@/types';
 
 interface PortfolioTableProps {
     assets: Asset[];
     onEdit: (asset: Asset) => void;
     onDelete: (assetId: string) => void;
+    onRefresh?: () => void;
     isLoading?: boolean;
 }
 
@@ -33,6 +34,7 @@ export default function PortfolioTable({
     assets,
     onEdit,
     onDelete,
+    onRefresh,
     isLoading = false,
 }: PortfolioTableProps) {
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -97,10 +99,31 @@ export default function PortfolioTable({
                 <div className="col-span-2 text-right">取得単価</div>
                 <div className="col-span-2 text-right">現在値</div>
                 <div className="col-span-2 text-right">損益</div>
-                <div className="col-span-1"></div>
+                <div className="col-span-1 flex justify-end">
+                    {onRefresh && (
+                        <button
+                            onClick={onRefresh}
+                            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                            title="更新"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* 行 */}
+            {/* モバイル用更新ボタン */}
+            {onRefresh && (
+                <div className="md:hidden p-3 border-b border-white/10 flex justify-end">
+                    <button
+                        onClick={onRefresh}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/60 bg-white/5 hover:bg-white/10 transition-colors text-sm"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        更新
+                    </button>
+                </div>
+            )}
             <div className="divide-y divide-white/5">
                 {assets.map((asset, index) => {
                     const { gain, gainPercent, totalValue } = calculateGain(asset);
@@ -117,12 +140,12 @@ export default function PortfolioTable({
                                 <div className="col-span-12 md:col-span-3">
                                     <div className="flex items-center gap-3">
                                         <div
-                                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs"
                                             style={{
                                                 background: `linear-gradient(135deg, ${getTickerColor(asset.ticker)} 0%, ${getTickerColor(asset.ticker)}88 100%)`,
                                             }}
                                         >
-                                            {asset.ticker.slice(0, 2)}
+                                            {asset.quantity.toLocaleString()}株
                                         </div>
                                         <div>
                                             <div className="font-medium text-white">{asset.name}</div>
@@ -188,8 +211,8 @@ export default function PortfolioTable({
                                     <button
                                         onClick={() => handleDelete(asset.id)}
                                         className={`p-2 rounded-lg transition-colors ${deleteConfirm === asset.id
-                                                ? 'bg-red-500/20 text-red-400'
-                                                : 'text-white/40 hover:text-red-400 hover:bg-red-500/10'
+                                            ? 'bg-red-500/20 text-red-400'
+                                            : 'text-white/40 hover:text-red-400 hover:bg-red-500/10'
                                             }`}
                                         title={deleteConfirm === asset.id ? 'もう一度クリックで削除' : '削除'}
                                     >

@@ -411,6 +411,7 @@ export default function Home() {
                 assets={assets}
                 onEdit={handleEditAsset}
                 onDelete={handleDeleteAsset}
+                onRefresh={loadAssets}
                 isLoading={isLoading}
               />
             </div>
