@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { Plus, Wallet, RefreshCw, BookOpen } from 'lucide-react';
 import PortfolioTable from '@/components/PortfolioTable';
 import PortfolioChart from '@/components/PortfolioChart';
-import NewsFeed from '@/components/NewsFeed';
 import AIAdvisorDisplay from '@/components/AIAdvisorDisplay';
 import AddAssetModal from '@/components/AddAssetModal';
 import GlossaryModal from '@/components/GlossaryModal';
-import type { Asset, AssetFormData, NewsItem } from '@/types';
+import type { Asset, AssetFormData } from '@/types';
 import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
 import {
   collection,
@@ -92,7 +91,6 @@ const DEMO_ASSETS: Asset[] = [
 
 export default function Home() {
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -308,10 +306,6 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  const handleNewsLoaded = (loadedNews: NewsItem[]) => {
-    setNews(loadedNews);
-  };
-
   // ポートフォリオサマリー計算
   const totalValue = assets.reduce((sum, a) => sum + a.quantity * a.currentPrice, 0);
   const totalCost = assets.reduce((sum, a) => sum + a.quantity * a.averageCost, 0);
@@ -373,43 +367,43 @@ export default function Home() {
       {/* メインコンテンツ */}
       <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ポートフォリオサマリー */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="glass rounded-xl p-4">
-            <div className="text-white/40 text-sm mb-1">評価額合計</div>
-            <div className="text-2xl font-bold text-white">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+          <div className="glass rounded-xl p-3 lg:p-4">
+            <div className="text-white/40 text-xs lg:text-sm mb-1">評価額合計</div>
+            <div className="text-lg lg:text-2xl font-bold text-white">
               ¥{totalValue.toLocaleString()}
             </div>
           </div>
-          <div className="glass rounded-xl p-4">
-            <div className="text-white/40 text-sm mb-1">投資額合計</div>
-            <div className="text-2xl font-bold text-white/70">
+          <div className="glass rounded-xl p-3 lg:p-4">
+            <div className="text-white/40 text-xs lg:text-sm mb-1">投資額合計</div>
+            <div className="text-lg lg:text-2xl font-bold text-white/70">
               ¥{totalCost.toLocaleString()}
             </div>
           </div>
-          <div className="glass rounded-xl p-4">
-            <div className="text-white/40 text-sm mb-1">含み損益</div>
+          <div className="glass rounded-xl p-3 lg:p-4">
+            <div className="text-white/40 text-xs lg:text-sm mb-1">含み損益</div>
             <div
-              className={`text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
+              className={`text-lg lg:text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
             >
               {totalGain >= 0 ? '+' : ''}¥{totalGain.toLocaleString()}
             </div>
           </div>
-          <div className="glass rounded-xl p-4">
-            <div className="text-white/40 text-sm mb-1">リターン</div>
+          <div className="glass rounded-xl p-3 lg:p-4">
+            <div className="text-white/40 text-xs lg:text-sm mb-1">リターン</div>
             <div
-              className={`text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
+              className={`text-lg lg:text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
             >
               {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(2)}%
             </div>
           </div>
         </div>
 
-        {/* メイングリッド */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* メイングリッド - 2カラム（スマホはシングルカラム） */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
           {/* 左カラム - ポートフォリオ */}
-          <div className="xl:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-4 lg:space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple" />
                 アセット管理センター
               </h2>
@@ -423,22 +417,13 @@ export default function Home() {
             <PortfolioChart assets={assets} isLoading={isLoading} />
           </div>
 
-          {/* 中央カラム - AIアドバイザー */}
-          <div className="xl:col-span-4">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          {/* 右カラム - AIアドバイザー（拡大） */}
+          <div className="lg:col-span-7">
+            <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-pink" />
               AI分析エンジン
             </h2>
-            <AIAdvisorDisplay assets={assets} news={news} />
-          </div>
-
-          {/* 右カラム - ニュース */}
-          <div className="xl:col-span-3">
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan" />
-              マーケットニュース
-            </h2>
-            <NewsFeed onNewsLoaded={handleNewsLoaded} />
+            <AIAdvisorDisplay assets={assets} />
           </div>
         </div>
       </main>

@@ -15,14 +15,13 @@ import {
     ChevronUp,
     Sparkles,
 } from 'lucide-react';
-import type { AIAnalysis, Asset, NewsItem } from '@/types';
+import type { AIAnalysis, Asset } from '@/types';
 
 interface AIAdvisorDisplayProps {
     assets: Asset[];
-    news: NewsItem[];
 }
 
-export default function AIAdvisorDisplay({ assets, news }: AIAdvisorDisplayProps) {
+export default function AIAdvisorDisplay({ assets }: AIAdvisorDisplayProps) {
     const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -42,7 +41,7 @@ export default function AIAdvisorDisplay({ assets, news }: AIAdvisorDisplayProps
             const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assets, news }),
+                body: JSON.stringify({ assets, news: [] }),
             });
 
             const data = await response.json();
