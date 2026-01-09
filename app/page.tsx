@@ -1,65 +1,478 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Plus, Wallet, RefreshCw, BookOpen } from 'lucide-react';
+import PortfolioTable from '@/components/PortfolioTable';
+import PortfolioChart from '@/components/PortfolioChart';
+import NewsFeed from '@/components/NewsFeed';
+import AIAdvisorDisplay from '@/components/AIAdvisorDisplay';
+import AddAssetModal from '@/components/AddAssetModal';
+import GlossaryModal from '@/components/GlossaryModal';
+import type { Asset, AssetFormData, NewsItem } from '@/types';
+import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  Timestamp,
+} from 'firebase/firestore';
+
+// Firebase未設定時のデモ用銘柄データ
+const DEMO_ASSETS: Asset[] = [
+  {
+    id: '1',
+    name: 'トヨタ自動車',
+    ticker: '7203',
+    sector: 'Consumer Discretionary',
+    quantity: 100,
+    averageCost: 2500,
+    currentPrice: 2850,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '2',
+    name: 'ソニーグループ',
+    ticker: '6758',
+    sector: 'Technology',
+    quantity: 50,
+    averageCost: 12000,
+    currentPrice: 14500,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '3',
+    name: '任天堂',
+    ticker: '7974',
+    sector: 'Technology',
+    quantity: 20,
+    averageCost: 6500,
+    currentPrice: 8200,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '4',
+    name: '三菱UFJフィナンシャル',
+    ticker: '8306',
+    sector: 'Finance',
+    quantity: 300,
+    averageCost: 1200,
+    currentPrice: 1580,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '5',
+    name: 'ソフトバンクグループ',
+    ticker: '9984',
+    sector: 'Technology',
+    quantity: 30,
+    averageCost: 6800,
+    currentPrice: 8900,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '6',
+    name: 'キーエンス',
+    ticker: '6861',
+    sector: 'Technology',
+    quantity: 5,
+    averageCost: 58000,
+    currentPrice: 72000,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 export default function Home() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [isUsingDemo, setIsUsingDemo] = useState(false);
+  const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
+
+  const STORAGE_KEY = 'ai-fund-manager-assets';
+
+  // localStorageからアセットを読み込む
+  const loadFromLocalStorage = (): Asset[] | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Date型を復元
+        return parsed.map((a: Asset) => ({
+          ...a,
+          createdAt: new Date(a.createdAt),
+          updatedAt: new Date(a.updatedAt),
+        }));
+      }
+    } catch (e) {
+      console.log('localStorage読み込みエラー:', e);
+    }
+    return null;
+  };
+
+  // localStorageにアセットを保存する
+  const saveToLocalStorage = (assetsToSave: Asset[]) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(assetsToSave));
+      console.log('ポートフォリオを保存しました');
+    } catch (e) {
+      console.log('localStorage保存エラー:', e);
+    }
+  };
+
+  // マウント時にアセット読み込み
+  useEffect(() => {
+    loadAssets();
+  }, []);
+
+  // アセット変更時に自動保存
+  useEffect(() => {
+    if (assets.length > 0 && !isLoading) {
+      saveToLocalStorage(assets);
+    }
+  }, [assets, isLoading]);
+
+  const loadAssets = async () => {
+    setIsLoading(true);
+
+    // まずlocalStorageから読み込む
+    const localAssets = loadFromLocalStorage();
+    if (localAssets && localAssets.length > 0) {
+      console.log('localStorageからポートフォリオを読み込みました');
+      setAssets(localAssets);
+      setIsUsingDemo(false);
+      setIsLoading(false);
+      return;
+    }
+
+    // Firebase設定確認
+    if (!isFirebaseConfigured() || !db) {
+      console.log('Firebase未設定のため、デモデータを使用します');
+      setAssets(DEMO_ASSETS);
+      setIsUsingDemo(true);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Firestoreへの接続をタイムアウト付きで試行（5秒）
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.log('Firestore接続タイムアウト - デモデータを使用');
+          resolve(null);
+        }, 5000);
+      });
+
+      const queryPromise = getDocs(collection(db, COLLECTIONS.ASSETS));
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+
+      // タイムアウトした場合
+      if (result === null) {
+        setAssets(DEMO_ASSETS);
+        setIsUsingDemo(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const loadedAssets: Asset[] = [];
+      result.forEach((doc) => {
+        const data = doc.data();
+        loadedAssets.push({
+          id: doc.id,
+          name: data.name,
+          ticker: data.ticker,
+          sector: data.sector,
+          quantity: data.quantity,
+          averageCost: data.averageCost,
+          currentPrice: data.currentPrice,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        });
+      });
+
+      // Firestoreが空の場合はデモデータを使用
+      if (loadedAssets.length === 0) {
+        console.log('Firestoreが空のため、デモデータを使用します');
+        setAssets(DEMO_ASSETS);
+        setIsUsingDemo(true);
+        setIsLoading(false);
+        return;
+      }
+
+      setAssets(loadedAssets);
+      setIsUsingDemo(false);
+    } catch (error) {
+      console.log('Firestore接続エラー - デモデータを使用:', error);
+      setAssets(DEMO_ASSETS);
+      setIsUsingDemo(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveAsset = async (data: AssetFormData) => {
+    // デモモード時はローカルステートのみ更新
+    if (isUsingDemo || !db) {
+      if (editingAsset) {
+        setAssets((prev) =>
+          prev.map((a) =>
+            a.id === editingAsset.id
+              ? { ...a, ...data, updatedAt: new Date() }
+              : a
+          )
+        );
+      } else {
+        const newAsset: Asset = {
+          id: `demo-${Date.now()}`,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setAssets((prev) => [...prev, newAsset]);
+      }
+      setEditingAsset(null);
+      return;
+    }
+
+    try {
+      if (editingAsset) {
+        // 既存アセット更新
+        const assetRef = doc(db, COLLECTIONS.ASSETS, editingAsset.id);
+        await updateDoc(assetRef, {
+          ...data,
+          updatedAt: Timestamp.now(),
+        });
+        setAssets((prev) =>
+          prev.map((a) =>
+            a.id === editingAsset.id
+              ? { ...a, ...data, updatedAt: new Date() }
+              : a
+          )
+        );
+      } else {
+        // 新規アセット追加
+        const docRef = await addDoc(collection(db, COLLECTIONS.ASSETS), {
+          ...data,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+        const newAsset: Asset = {
+          id: docRef.id,
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setAssets((prev) => [...prev, newAsset]);
+      }
+      setEditingAsset(null);
+    } catch (error) {
+      console.error('アセット保存エラー:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    // デモモード時はローカルステートのみ更新
+    if (isUsingDemo || !db) {
+      setAssets((prev) => prev.filter((a) => a.id !== assetId));
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.ASSETS, assetId));
+      setAssets((prev) => prev.filter((a) => a.id !== assetId));
+    } catch (error) {
+      console.error('アセット削除エラー:', error);
+    }
+  };
+
+  const handleEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingAsset(null);
+    setIsModalOpen(true);
+  };
+
+  const handleNewsLoaded = (loadedNews: NewsItem[]) => {
+    setNews(loadedNews);
+  };
+
+  // ポートフォリオサマリー計算
+  const totalValue = assets.reduce((sum, a) => sum + a.quantity * a.currentPrice, 0);
+  const totalCost = assets.reduce((sum, a) => sum + a.quantity * a.averageCost, 0);
+  const totalGain = totalValue - totalCost;
+  const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-black">
+      {/* ヘッダー */}
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-black/80 backdrop-blur-xl">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* ロゴ */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl gradient-full flex items-center justify-center glow-gradient">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold gradient-text">AI ファンドマネージャー</h1>
+                <p className="text-white/40 text-xs hidden sm:block">
+                  インテリジェント ポートフォリオ分析
+                </p>
+              </div>
+            </div>
+
+            {/* アクション */}
+            <div className="flex items-center gap-3">
+              {isUsingDemo && (
+                <span className="badge-warning text-xs hidden sm:inline-flex">
+                  デモモード
+                </span>
+              )}
+              <button
+                onClick={loadAssets}
+                className="p-2.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                title="更新"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setIsGlossaryOpen(true)}
+                className="p-2.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                title="用語解説"
+              >
+                <BookOpen className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleOpenAddModal}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-purple-blue text-white font-medium hover:scale-105 transition-transform btn-glow"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">銘柄追加</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* メインコンテンツ */}
+      <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ポートフォリオサマリー */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="glass rounded-xl p-4">
+            <div className="text-white/40 text-sm mb-1">評価額合計</div>
+            <div className="text-2xl font-bold text-white">
+              ¥{totalValue.toLocaleString()}
+            </div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-white/40 text-sm mb-1">投資額合計</div>
+            <div className="text-2xl font-bold text-white/70">
+              ¥{totalCost.toLocaleString()}
+            </div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-white/40 text-sm mb-1">含み損益</div>
+            <div
+              className={`text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
+            >
+              {totalGain >= 0 ? '+' : ''}¥{totalGain.toLocaleString()}
+            </div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-white/40 text-sm mb-1">リターン</div>
+            <div
+              className={`text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
+            >
+              {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(2)}%
+            </div>
+          </div>
+        </div>
+
+        {/* メイングリッド */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* 左カラム - ポートフォリオ */}
+          <div className="xl:col-span-5 space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple" />
+                アセット管理センター
+              </h2>
+              <PortfolioTable
+                assets={assets}
+                onEdit={handleEditAsset}
+                onDelete={handleDeleteAsset}
+                isLoading={isLoading}
+              />
+            </div>
+            <PortfolioChart assets={assets} isLoading={isLoading} />
+          </div>
+
+          {/* 中央カラム - AIアドバイザー */}
+          <div className="xl:col-span-4">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-pink" />
+              AI分析エンジン
+            </h2>
+            <AIAdvisorDisplay assets={assets} news={news} />
+          </div>
+
+          {/* 右カラム - ニュース */}
+          <div className="xl:col-span-3">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan" />
+              マーケットニュース
+            </h2>
+            <NewsFeed onNewsLoaded={handleNewsLoaded} />
+          </div>
         </div>
       </main>
+
+      {/* フッター */}
+      <footer className="border-t border-white/5 mt-12">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-white/30 text-sm">
+              Next.js、Firebase、Google Gemini AI で構築
+            </div>
+            <div className="flex items-center gap-4 text-white/30 text-sm">
+              <span>© 2026 AI ファンドマネージャー</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* 銘柄追加/編集モーダル */}
+      <AddAssetModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAsset(null);
+        }}
+        onSave={handleSaveAsset}
+        editingAsset={editingAsset}
+      />
+
+      {/* 用語解説モーダル */}
+      <GlossaryModal
+        isOpen={isGlossaryOpen}
+        onClose={() => setIsGlossaryOpen(false)}
+      />
     </div>
   );
 }
