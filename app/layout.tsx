@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,15 +13,33 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Fund Manager | Intelligent Portfolio Analysis",
-  description: "AI-powered investment portfolio analyzer with market intelligence and personalized recommendations. Built with Next.js, Firebase, and Google Gemini.",
-  keywords: ["AI", "fund manager", "portfolio", "investment", "stock", "analysis"],
+  title: "AI ファンドマネージャー | 投資分析アプリ",
+  description: "AIがあなたのポートフォリオを専門的に分析します。目標株価、VaR、シャープレシオなど機関投資家レベルの分析を提供。",
+  keywords: ["AI", "ファンドマネージャー", "ポートフォリオ", "投資", "株式", "分析"],
   authors: [{ name: "AI Fund Manager" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AI投資分析",
+  },
   openGraph: {
-    title: "AI Fund Manager",
-    description: "Intelligent Portfolio Analysis powered by AI",
+    title: "AI ファンドマネージャー",
+    description: "AIによるプロフェッショナル投資分析",
     type: "website",
   },
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#8b5cf6",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -30,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

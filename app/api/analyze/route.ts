@@ -320,23 +320,34 @@ Markdown形式で、見出しと表を効果的に使用して構造化するこ
 `;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',
             messages: [
                 {
                     role: 'system',
-                    content: `あなたはウォール街の超一流ファンドマネージャーです。
-常に具体的な数値とアクションを提示します。
-「分散投資が大切です」のような一般論は絶対に言いません。
-すべての分析は具体的な数字、価格目標、売買判断を含みます。
-日本語で回答しますが、プロフェッショナルな金融用語を適切に使用します。`
+                    content: `あなたはゴールドマン・サックスのシニアポートフォリオマネージャーで、CFA資格保有者です。
+
+【絶対ルール】
+1. 必ず具体的な数値を使う（○○円、○○%、○○点）
+2. 各銘柄に投資判断（Strong Buy/Buy/Hold/Sell）と目標株価を必ず提示
+3. VaR、HHI、シャープレシオを計算して提示
+4. 「分散投資が大切」「長期投資を心がけて」等の初心者向けアドバイスは禁止
+5. すべての推奨に具体的な数字と根拠を付ける
+6. Markdown表を積極的に使用して見やすく構造化
+7. 日本語で専門的に回答
+
+【出力必須項目】
+- 100点満点の総合スコア（詳細な内訳付き）
+- 各銘柄の目標株価と上昇/下落余地
+- リバランスすべき具体的金額
+- 3つのシナリオ（強気/基本/弱気）と確率・影響額`
                 },
                 {
                     role: 'user',
                     content: prompt
                 }
             ],
-            temperature: 0.5,
-            max_tokens: 4500,
+            temperature: 0.3,
+            max_tokens: 5000,
         });
 
         const analysisText = completion.choices[0]?.message?.content || '';
