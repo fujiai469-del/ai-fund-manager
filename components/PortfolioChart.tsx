@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Asset } from '@/types';
-import { SECTOR_COLORS } from '@/types';
+import { SECTOR_COLORS, convertToJPY } from '@/types';
 
 interface PortfolioChartProps {
     assets: Asset[];
@@ -66,10 +66,10 @@ export default function PortfolioChart({ assets, isLoading = false }: PortfolioC
         );
     }
 
-    // セクター別集計
+    // セクター別集計（円換算）
     const sectorValues: Record<string, number> = {};
     assets.forEach((asset) => {
-        const value = asset.quantity * asset.currentPrice;
+        const value = convertToJPY(asset.quantity * asset.currentPrice, asset.currency);
         sectorValues[asset.sector] = (sectorValues[asset.sector] || 0) + value;
     });
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Pencil, Trash2, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 import type { Asset } from '@/types';
+import { convertToJPY } from '@/types';
 
 interface PortfolioTableProps {
     assets: Asset[];
@@ -40,8 +41,8 @@ export default function PortfolioTable({
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
     const calculateGain = (asset: Asset) => {
-        const totalValue = asset.quantity * asset.currentPrice;
-        const totalCost = asset.quantity * asset.averageCost;
+        const totalValue = convertToJPY(asset.quantity * asset.currentPrice, asset.currency);
+        const totalCost = convertToJPY(asset.quantity * asset.averageCost, asset.currency);
         const gain = totalValue - totalCost;
         const gainPercent = totalCost > 0 ? (gain / totalCost) * 100 : 0;
         return { gain, gainPercent, totalValue, totalCost };

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { X, Plus, Save, Loader2 } from 'lucide-react';
-import type { Asset, AssetFormData } from '@/types';
-import { SECTORS } from '@/types';
+import type { Asset, AssetFormData, Currency } from '@/types';
+import { SECTORS, EXCHANGE_RATES } from '@/types';
 
 interface AddAssetModalProps {
     isOpen: boolean;
@@ -40,6 +40,7 @@ export default function AddAssetModal({
         name: '',
         ticker: '',
         sector: 'Technology',
+        currency: 'JPY',
         quantity: 0,
         averageCost: 0,
         currentPrice: 0,
@@ -55,6 +56,7 @@ export default function AddAssetModal({
                     name: editingAsset.name,
                     ticker: editingAsset.ticker,
                     sector: editingAsset.sector,
+                    currency: editingAsset.currency || 'JPY',
                     quantity: editingAsset.quantity,
                     averageCost: editingAsset.averageCost,
                     currentPrice: editingAsset.currentPrice,
@@ -64,6 +66,7 @@ export default function AddAssetModal({
                     name: '',
                     ticker: '',
                     sector: 'Technology',
+                    currency: 'JPY',
                     quantity: 0,
                     averageCost: 0,
                     currentPrice: 0,
@@ -179,11 +182,11 @@ export default function AddAssetModal({
                         )}
                     </div>
 
-                    {/* ティッカー & セクター */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* ティッカー & セクター & 通貨 */}
+                    <div className="grid grid-cols-3 gap-4">
                         <div>
                             <label className="block text-white/70 text-sm font-medium mb-2">
-                                ティッカー/証券コード
+                                ティッカー
                             </label>
                             <input
                                 type="text"
@@ -196,6 +199,20 @@ export default function AddAssetModal({
                             {errors.ticker && (
                                 <p className="text-red-400 text-sm mt-1">{errors.ticker}</p>
                             )}
+                        </div>
+                        <div>
+                            <label className="block text-white/70 text-sm font-medium mb-2">
+                                通貨
+                            </label>
+                            <select
+                                name="currency"
+                                value={formData.currency}
+                                onChange={handleChange}
+                                className="select"
+                            >
+                                <option value="JPY" className="bg-black">円 (JPY)</option>
+                                <option value="USD" className="bg-black">ドル (USD)</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block text-white/70 text-sm font-medium mb-2">
@@ -240,7 +257,7 @@ export default function AddAssetModal({
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-white/70 text-sm font-medium mb-2">
-                                平均取得単価（¥）
+                                平均取得単価（{formData.currency === 'JPY' ? '¥' : '$'}）
                             </label>
                             <input
                                 type="number"
@@ -258,7 +275,7 @@ export default function AddAssetModal({
                         </div>
                         <div>
                             <label className="block text-white/70 text-sm font-medium mb-2">
-                                現在値（¥）
+                                現在値（{formData.currency === 'JPY' ? '¥' : '$'}）
                             </label>
                             <input
                                 type="number"
@@ -279,17 +296,20 @@ export default function AddAssetModal({
                     {/* プレビュー */}
                     {formData.quantity > 0 && formData.averageCost > 0 && formData.currentPrice > 0 && (
                         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                            <div className="text-white/40 text-xs mb-2 text-center">
+                                {formData.currency === 'USD' && `¥換算 (1USD = ¥${EXCHANGE_RATES.USD})`}
+                            </div>
                             <div className="grid grid-cols-3 gap-4 text-center">
                                 <div>
                                     <div className="text-white/40 text-xs mb-1">投資額</div>
                                     <div className="text-white font-medium">
-                                        ¥{(formData.quantity * formData.averageCost).toLocaleString()}
+                                        ¥{(formData.quantity * formData.averageCost * EXCHANGE_RATES[formData.currency]).toLocaleString()}
                                     </div>
                                 </div>
                                 <div>
                                     <div className="text-white/40 text-xs mb-1">評価額</div>
                                     <div className="text-white font-medium">
-                                        ¥{(formData.quantity * formData.currentPrice).toLocaleString()}
+                                        ¥{(formData.quantity * formData.currentPrice * EXCHANGE_RATES[formData.currency]).toLocaleString()}
                                     </div>
                                 </div>
                                 <div>

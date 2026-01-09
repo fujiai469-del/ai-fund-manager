@@ -8,6 +8,7 @@ import AIAdvisorDisplay from '@/components/AIAdvisorDisplay';
 import AddAssetModal from '@/components/AddAssetModal';
 import GlossaryModal from '@/components/GlossaryModal';
 import type { Asset, AssetFormData } from '@/types';
+import { convertToJPY } from '@/types';
 import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
 import {
   collection,
@@ -26,6 +27,7 @@ const DEMO_ASSETS: Asset[] = [
     name: 'トヨタ自動車',
     ticker: '7203',
     sector: 'Consumer Discretionary',
+    currency: 'JPY',
     quantity: 100,
     averageCost: 2500,
     currentPrice: 2850,
@@ -37,6 +39,7 @@ const DEMO_ASSETS: Asset[] = [
     name: 'ソニーグループ',
     ticker: '6758',
     sector: 'Technology',
+    currency: 'JPY',
     quantity: 50,
     averageCost: 12000,
     currentPrice: 14500,
@@ -48,6 +51,7 @@ const DEMO_ASSETS: Asset[] = [
     name: '任天堂',
     ticker: '7974',
     sector: 'Technology',
+    currency: 'JPY',
     quantity: 20,
     averageCost: 6500,
     currentPrice: 8200,
@@ -59,6 +63,7 @@ const DEMO_ASSETS: Asset[] = [
     name: '三菱UFJフィナンシャル',
     ticker: '8306',
     sector: 'Finance',
+    currency: 'JPY',
     quantity: 300,
     averageCost: 1200,
     currentPrice: 1580,
@@ -67,23 +72,25 @@ const DEMO_ASSETS: Asset[] = [
   },
   {
     id: '5',
-    name: 'ソフトバンクグループ',
-    ticker: '9984',
+    name: 'Apple',
+    ticker: 'AAPL',
     sector: 'Technology',
-    quantity: 30,
-    averageCost: 6800,
-    currentPrice: 8900,
+    currency: 'USD',
+    quantity: 10,
+    averageCost: 150,
+    currentPrice: 185,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: '6',
-    name: 'キーエンス',
-    ticker: '6861',
+    name: 'Microsoft',
+    ticker: 'MSFT',
     sector: 'Technology',
+    currency: 'USD',
     quantity: 5,
-    averageCost: 58000,
-    currentPrice: 72000,
+    averageCost: 380,
+    currentPrice: 420,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -192,6 +199,7 @@ export default function Home() {
           name: data.name,
           ticker: data.ticker,
           sector: data.sector,
+          currency: data.currency || 'JPY',
           quantity: data.quantity,
           averageCost: data.averageCost,
           currentPrice: data.currentPrice,
@@ -306,9 +314,9 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  // ポートフォリオサマリー計算
-  const totalValue = assets.reduce((sum, a) => sum + a.quantity * a.currentPrice, 0);
-  const totalCost = assets.reduce((sum, a) => sum + a.quantity * a.averageCost, 0);
+  // ポートフォリオサマリー計算（全て円換算）
+  const totalValue = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency), 0);
+  const totalCost = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency), 0);
   const totalGain = totalValue - totalCost;
   const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
 

@@ -1,9 +1,20 @@
+// 通貨型
+export type Currency = 'JPY' | 'USD';
+
+// 為替レート（USD -> JPY）
+// 実際のアプリではAPIから取得することを推奨
+export const EXCHANGE_RATES: Record<Currency, number> = {
+  JPY: 1,
+  USD: 155, // 1USD = 155JPY（固定レート）
+};
+
 // Portfolio Asset Type
 export interface Asset {
   id: string;
   name: string;
   ticker: string;
   sector: string;
+  currency: Currency;
   quantity: number;
   averageCost: number;
   currentPrice: number;
@@ -16,9 +27,15 @@ export interface AssetFormData {
   name: string;
   ticker: string;
   sector: string;
+  currency: Currency;
   quantity: number;
   averageCost: number;
   currentPrice: number;
+}
+
+// 円換算ユーティリティ
+export function convertToJPY(amount: number, currency: Currency): number {
+  return amount * EXCHANGE_RATES[currency];
 }
 
 // News Article Type
