@@ -1,5 +1,48 @@
 @import "tailwindcss";
 
+/* Slider Thumb Styling */
+.slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  transition: transform 0.2s;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Slide Up Animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
 /* Antigravity Aesthetic - Custom Theme */
 :root {
   --background: #000000;

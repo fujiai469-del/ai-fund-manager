@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Wallet, RefreshCw, BookOpen } from 'lucide-react';
+import { Plus, Wallet, RefreshCw, BookOpen, Settings2, AlertTriangle } from 'lucide-react';
 import PortfolioTable from '@/components/PortfolioTable';
 import PortfolioChart from '@/components/PortfolioChart';
 import AIAdvisorDisplay from '@/components/AIAdvisorDisplay';
@@ -9,6 +9,7 @@ import AddAssetModal from '@/components/AddAssetModal';
 import GlossaryModal from '@/components/GlossaryModal';
 import BottomNav, { type TabType } from '@/components/BottomNav';
 import InstitutionalHoldings from '@/components/InstitutionalHoldings';
+import SimulationPanel from '@/components/SimulationPanel';
 import type { Asset, AssetFormData } from '@/types';
 import { convertToJPY } from '@/types';
 import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
@@ -106,6 +107,12 @@ export default function Home() {
   const [isUsingDemo, setIsUsingDemo] = useState(false);
   const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('portfolio');
+
+  // シミュレーション機能の状態
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [simExchangeRate, setSimExchangeRate] = useState(155);
+  const [simMarketChange, setSimMarketChange] = useState(0);
+  const isSimulating = simExchangeRate !== 155 || simMarketChange !== 0;
 
   const STORAGE_KEY = 'ai-fund-manager-assets';
 
@@ -317,11 +324,35 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  // ポートフォリオサマリー計算（全て円換算）
-  const totalValue = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency), 0);
+  // シミュレーション適用後の価格を計算
+  const getSimulatedPrice = (asset: Asset) => {
+    const marketMultiplier = 1 + simMarketChange / 100;
+    const simulatedPrice = asset.currentPrice * marketMultiplier;
+    return simulatedPrice;
+  };
+
+  // シミュレーション適用後の円換算を計算
+  const convertToJPYSimulated = (value: number, currency: string) => {
+    if (currency === 'USD') {
+      return value * simExchangeRate;
+    }
+    return value;
+  };
+
+  // ポートフォリオサマリー計算（シミュレーション対応）
+  const totalValue = assets.reduce((sum, a) => {
+    const simPrice = getSimulatedPrice(a);
+    return sum + convertToJPYSimulated(a.quantity * simPrice, a.currency);
+  }, 0);
   const totalCost = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency), 0);
   const totalGain = totalValue - totalCost;
   const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+
+  // シミュレーションリセット
+  const resetSimulation = () => {
+    setSimExchangeRate(155);
+    setSimMarketChange(0);
+  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -344,11 +375,27 @@ export default function Home() {
 
             {/* アクション */}
             <div className="flex items-center gap-3">
+              {isSimulating && (
+                <span className="badge-warning text-xs hidden sm:inline-flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  シミュレーション中
+                </span>
+              )}
               {isUsingDemo && (
                 <span className="badge-warning text-xs hidden sm:inline-flex">
                   デモモード
                 </span>
               )}
+              <button
+                onClick={() => setIsSimulationOpen(true)}
+                className={`p-2.5 rounded-lg transition-colors ${isSimulating
+                  ? 'text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
+                  : 'text-white/40 hover:text-white hover:bg-white/10'
+                  }`}
+                title="ストレステスト"
+              >
+                <Settings2 className="w-5 h-5" />
+              </button>
               <button
                 onClick={loadAssets}
                 className="p-2.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
@@ -373,10 +420,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </header>
+      </header >
 
       {/* メインコンテンツ */}
-      <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      < main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24" >
         {activeTab === 'portfolio' ? (
           <>
             {/* ポートフォリオサマリー */}
@@ -444,11 +491,12 @@ export default function Home() {
         ) : (
           /* 機関投資家タブ */
           <InstitutionalHoldings portfolioTickers={assets.map(a => a.ticker)} />
-        )}
-      </main>
+        )
+        }
+      </main >
 
       {/* フッター */}
-      <footer className="border-t border-white/5 mb-20">
+      < footer className="border-t border-white/5 mb-20" >
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-white/30 text-sm">
@@ -459,13 +507,13 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </footer>
+      </footer >
 
       {/* 下部ナビゲーション */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      < BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* 銘柄追加/編集モーダル */}
-      <AddAssetModal
+      < AddAssetModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -480,6 +528,17 @@ export default function Home() {
         isOpen={isGlossaryOpen}
         onClose={() => setIsGlossaryOpen(false)}
       />
-    </div>
+
+      {/* シミュレーションパネル */}
+      <SimulationPanel
+        isOpen={isSimulationOpen}
+        onClose={() => setIsSimulationOpen(false)}
+        exchangeRate={simExchangeRate}
+        marketChange={simMarketChange}
+        onExchangeRateChange={setSimExchangeRate}
+        onMarketChangeChange={setSimMarketChange}
+        onReset={resetSimulation}
+      />
+    </div >
   );
 }
