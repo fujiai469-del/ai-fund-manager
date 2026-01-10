@@ -194,7 +194,8 @@ export async function POST(request: NextRequest) {
 
         // Google Gemini初期化
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        console.log('Gemini API initialized successfully');
 
         // ポートフォリオサマリー作成
         const portfolioSummary = assets.map(a => ({
@@ -391,8 +392,10 @@ Markdown形式で、見出しと表を効果的に使用して構造化するこ
         });
     } catch (error) {
         console.error('Error in analyze API:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error details:', errorMessage);
         return NextResponse.json(
-            { success: false, error: '分析に失敗しました。もう一度お試しください。' },
+            { success: false, error: `分析に失敗しました: ${errorMessage}` },
             { status: 500 }
         );
     }
