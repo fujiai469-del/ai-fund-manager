@@ -528,6 +528,9 @@ body {
   overflow: hidden;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .markdown-content th {
@@ -539,12 +542,16 @@ body {
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  min-width: 120px;
 }
 
 .markdown-content td {
   padding: 0.875rem 1rem;
   color: rgba(255, 255, 255, 0.75);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 120px;
+  word-break: break-word;
 }
 
 .markdown-content tr:last-child td {
@@ -553,6 +560,55 @@ body {
 
 .markdown-content tr:hover td {
   background: rgba(255, 255, 255, 0.03);
+}
+
+/* スマホでテーブルをカード形式に変換 */
+@media (max-width: 640px) {
+  .markdown-content table {
+    display: block;
+  }
+
+  .markdown-content table thead {
+    display: none;
+  }
+
+  .markdown-content table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .markdown-content table tr {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .markdown-content table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: unset;
+  }
+
+  .markdown-content table td:last-child {
+    border-bottom: none;
+  }
+
+  .markdown-content table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
 }
 
 /* Horizontal Rules (Section Dividers) */
