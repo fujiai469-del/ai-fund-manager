@@ -96,7 +96,10 @@ export default function PortfolioTable({
                             {asset.quantity.toLocaleString()}株
                         </div>
                         <div>
-                            <div className="font-semibold text-white text-base">{asset.name}</div>
+                            <div className="font-semibold text-white text-base flex items-center gap-2">
+                                <span>{asset.currency === 'USD' ? '🇺🇸' : '🇯🇵'}</span>
+                                {asset.name}
+                            </div>
                             <div className="text-white/50 text-sm flex items-center gap-2">
                                 <span className="font-medium">{asset.ticker}</span>
                                 <span className="text-white/20">•</span>
