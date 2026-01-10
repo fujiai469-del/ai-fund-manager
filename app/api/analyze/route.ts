@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Asset, NewsItem, AIAnalysis } from '@/types';
+import { fetchGoogleNews, fetchMarketNews, type NewsItem as GoogleNewsItem } from '@/lib/news';
 
 // モックAI分析（OpenAI APIキー未設定時用）
 function generateMockAnalysis(assets: Asset[], news: NewsItem[]): AIAnalysis {
@@ -235,12 +236,40 @@ export async function POST(request: NextRequest) {
         const topPerformer = sortedByPerformance[0];
         const worstPerformer = sortedByPerformance[sortedByPerformance.length - 1];
 
+        // 📰 Google News RSSから最新ニュースを取得
+        console.log('保有株関連ニュースを取得中...');
+
+        // 各保有銘柄のニュースを取得
+        const stockNewsPromises = assets.map(async (asset) => {
+            const news = await fetchGoogleNews(asset.name, 2);
+            return { name: asset.name, ticker: asset.ticker, news };
+        });
+        const stockNewsResults = await Promise.all(stockNewsPromises);
+
+        // 市場全体のニュースを取得
+        const marketNews = await fetchMarketNews();
+
         // ニュースサマリー作成
-        const newsSummary = (news || []).slice(0, 8).map(n => ({
-            見出し: n.title,
-            出典: n.source?.name || '不明',
-            公開日時: n.publishedAt,
-        }));
+        let newsSection = '## 📰 最新ニュース（リアルタイム取得）\n\n';
+
+        // 各銘柄のニュース
+        newsSection += '### 保有銘柄関連ニュース\n';
+        for (const { name, ticker, news } of stockNewsResults) {
+            if (news.length > 0) {
+                newsSection += `\n**${name} (${ticker})**\n`;
+                for (const item of news) {
+                    newsSection += `- ${item.title} (出典: ${item.source})\n`;
+                }
+            }
+        }
+
+        // 市場全体のニュース
+        newsSection += '\n### 市場全体のニュース\n';
+        for (const item of marketNews.slice(0, 5)) {
+            newsSection += `- ${item.title} (出典: ${item.source})\n`;
+        }
+
+        console.log(`取得完了: 銘柄関連${stockNewsResults.reduce((sum, r) => sum + r.news.length, 0)}件, 市場全体${marketNews.length}件`);
 
         const prompt = `
 あなたはゴールドマン・サックス、モルガン・スタンレー級の超一流ファンドマネージャーです。
@@ -274,8 +303,7 @@ ${JSON.stringify(portfolioSummary, null, 2)}
 ## セクター配分
 ${JSON.stringify(sectorSummary, null, 2)}
 
-## 最新市場ニュース
-${JSON.stringify(newsSummary, null, 2)}
+${newsSection}
 
 ---
 
