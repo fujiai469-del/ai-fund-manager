@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { Asset, NewsItem, AIAnalysis } from '@/types';
 
 // モックAI分析（OpenAI APIキー未設定時用）
@@ -192,10 +191,9 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Google Gemini初期化
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-        console.log('Gemini API initialized successfully');
+        // Google Gemini APIを直接呼び出す
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        console.log('Using Gemini 2.5 Flash via REST API');
 
         // ポートフォリオサマリー作成
         const portfolioSummary = assets.map(a => ({
@@ -349,18 +347,30 @@ Markdown形式で、見出しと表を効果的に使用して構造化するこ
 【出力フォーマット】
 必ずMarkdownの表形式で見やすく構造化すること。絵文字を効果的に使用。`;
 
-        const result = await model.generateContent({
-            contents: [{
-                role: 'user',
-                parts: [{ text: systemPrompt + '\n\n' + prompt }]
-            }],
-            generationConfig: {
-                temperature: 0.2,
-                maxOutputTokens: 8000,
+        const response = await fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: systemPrompt + '\n\n' + prompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.2,
+                    maxOutputTokens: 8000,
+                },
+            }),
         });
 
-        const analysisText = result.response.text();
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Gemini API error:', errorData);
+            throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+        }
+
+        const result = await response.json();
+        const analysisText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         // 分析結果からセンチメント判定
         let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
