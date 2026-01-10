@@ -74,103 +74,93 @@ export default function PortfolioTable({
         }
     };
 
-    // モバイル用カードコンポーネント
+    // モバイル用カードコンポーネント（モダンデザイン）
     const AssetCard = ({ asset, index }: { asset: Asset; index: number }) => {
-        const { gain, gainPercent, totalValue } = calculateGain(asset);
+        const { gain, gainPercent, totalValue, totalCost } = calculateGain(asset);
         const isPositive = gain >= 0;
+        // 進捗率を計算（投資額に対する現在評価額の比率、100%を基準に）
+        const progressPercent = Math.min(Math.max((totalValue / totalCost) * 100, 0), 200);
+        const progressWidth = Math.min(progressPercent, 100);
 
         return (
             <div
-                className="asset-card p-4 animate-fadeIn"
+                className="bg-white/[0.03] backdrop-blur-sm rounded-2xl p-4 mb-3 border border-white/5 hover:border-white/10 transition-all animate-fadeIn"
                 style={{ animationDelay: `${index * 50}ms` }}
             >
-                {/* ヘッダー: 銘柄情報 */}
-                <div className="flex items-center justify-between mb-3">
+                {/* 上段: 銘柄情報とアクション */}
+                <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
+                        {/* カラードット */}
                         <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs"
-                            style={{
-                                background: `linear-gradient(135deg, ${getTickerColor(asset.ticker)} 0%, ${getTickerColor(asset.ticker)}88 100%)`,
-                            }}
-                        >
-                            {asset.quantity.toLocaleString()}株
-                        </div>
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: getTickerColor(asset.ticker) }}
+                        />
                         <div>
                             <div className="font-semibold text-white text-base flex items-center gap-2">
-                                <span>{asset.currency === 'USD' ? '🇺🇸' : '🇯🇵'}</span>
+                                <span className="text-lg">{asset.currency === 'USD' ? '🇺🇸' : '🇯🇵'}</span>
                                 {asset.name}
                             </div>
-                            <div className="text-white/50 text-sm flex items-center gap-2">
-                                <span className="font-medium">{asset.ticker}</span>
-                                <span className="text-white/20">•</span>
-                                <span>{SECTOR_LABELS[asset.sector] || asset.sector}</span>
-                            </div>
+                            <div className="text-white/40 text-sm">{asset.ticker}</div>
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => onEdit(asset)}
-                            className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                            title="編集"
+                            className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors"
                         >
                             <Pencil className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleDelete(asset.id)}
-                            className={`p-2 rounded-lg transition-colors ${deleteConfirm === asset.id
+                            className={`p-2 rounded-full transition-colors ${deleteConfirm === asset.id
                                 ? 'bg-red-500/20 text-red-400'
-                                : 'text-white/40 hover:text-red-400 hover:bg-red-500/10'
+                                : 'text-white/30 hover:text-red-400 hover:bg-red-500/10'
                                 }`}
-                            title={deleteConfirm === asset.id ? 'もう一度クリックで削除' : '削除'}
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
-                {/* 価格情報 */}
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-white/[0.03] rounded-lg p-3">
-                        <div className="text-white/40 text-xs mb-1">取得単価</div>
-                        <div className="text-white font-medium">
-                            {asset.currency === 'USD' ? '$' : '¥'}{Math.round(asset.averageCost).toLocaleString()}
+                {/* 中段: 金額とプログレスバー */}
+                <div className="mb-4">
+                    <div className="flex items-end justify-between mb-2">
+                        <div>
+                            <div className="text-white/40 text-xs mb-1">評価額</div>
+                            <div className="text-white font-bold text-xl">¥{Math.round(totalValue).toLocaleString()}</div>
                         </div>
-                        {asset.currency === 'USD' && (
-                            <div className="text-white/30 text-xs">≈¥{Math.round(asset.averageCost * 155).toLocaleString()}</div>
-                        )}
+                        <div className="text-right">
+                            <div className={`text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                {isPositive ? '+' : ''}{gainPercent.toFixed(1)}%
+                            </div>
+                        </div>
                     </div>
-                    <div className="bg-white/[0.03] rounded-lg p-3">
-                        <div className="text-white/40 text-xs mb-1">現在値</div>
-                        <div className="text-white font-medium">
-                            {asset.currency === 'USD' ? '$' : '¥'}{Math.round(asset.currentPrice).toLocaleString()}
-                        </div>
-                        {asset.currency === 'USD' && (
-                            <div className="text-white/30 text-xs">≈¥{Math.round(asset.currentPrice * 155).toLocaleString()}</div>
-                        )}
+
+                    {/* プログレスバー */}
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}
+                            style={{ width: `${progressWidth}%` }}
+                        />
                     </div>
                 </div>
 
-                {/* 評価額と損益 */}
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                {/* 下段: 詳細情報 */}
+                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
                     <div>
-                        <div className="text-white/40 text-xs mb-0.5">評価額</div>
-                        <div className="text-white font-semibold">¥{Math.round(totalValue).toLocaleString()}</div>
+                        <div className="text-white/40 text-xs mb-0.5">保有数</div>
+                        <div className="text-white font-medium text-sm">{asset.quantity.toLocaleString()}株</div>
                     </div>
-                    <div className="text-right">
-                        <div className={`flex items-center justify-end gap-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                            {isPositive ? (
-                                <TrendingUp className="w-4 h-4" />
-                            ) : gain < 0 ? (
-                                <TrendingDown className="w-4 h-4" />
-                            ) : (
-                                <Minus className="w-4 h-4" />
-                            )}
-                            <span className="font-semibold">
-                                {isPositive ? '+' : ''}¥{Math.round(gain).toLocaleString()}
-                            </span>
+                    <div>
+                        <div className="text-white/40 text-xs mb-0.5">取得単価</div>
+                        <div className="text-white font-medium text-sm">
+                            {asset.currency === 'USD' ? '$' : '¥'}{Math.round(asset.averageCost).toLocaleString()}
                         </div>
-                        <div className={`text-sm ${isPositive ? 'text-green-400/70' : 'text-red-400/70'}`}>
-                            {isPositive ? '+' : ''}{gainPercent.toFixed(1)}%
+                    </div>
+                    <div>
+                        <div className="text-white/40 text-xs mb-0.5">損益</div>
+                        <div className={`font-medium text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                            {isPositive ? '+' : ''}¥{Math.round(gain).toLocaleString()}
                         </div>
                     </div>
                 </div>
