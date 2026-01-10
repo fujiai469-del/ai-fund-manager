@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Asset, NewsItem, AIAnalysis } from '@/types';
+import { convertToJPY } from '@/types';
 import { fetchGoogleNews, fetchMarketNews, type NewsItem as GoogleNewsItem } from '@/lib/news';
 
 // モックAI分析（OpenAI APIキー未設定時用）
 function generateMockAnalysis(assets: Asset[], news: NewsItem[]): AIAnalysis {
-    const totalValue = assets.reduce((sum, a) => sum + a.quantity * a.currentPrice, 0);
-    const totalCost = assets.reduce((sum, a) => sum + a.quantity * a.averageCost, 0);
+    // 全て円換算で計算
+    const totalValue = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency), 0);
+    const totalCost = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency), 0);
     const gainPercent = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
 
     // パフォーマンスに基づいてセンチメント判定
@@ -196,29 +198,38 @@ export async function POST(request: NextRequest) {
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         console.log('Using Gemini 2.5 Flash via REST API');
 
-        // ポートフォリオサマリー作成
-        const portfolioSummary = assets.map(a => ({
-            銘柄名: a.name,
-            ティッカー: a.ticker,
-            セクター: a.sector,
-            保有数: a.quantity,
-            平均取得単価: a.averageCost,
-            現在値: a.currentPrice,
-            評価額: a.quantity * a.currentPrice,
-            損益率: ((a.currentPrice - a.averageCost) / a.averageCost) * 100,
-        }));
+        // ポートフォリオサマリー作成（全て円換算）
+        const portfolioSummary = assets.map(a => {
+            const valueJPY = convertToJPY(a.quantity * a.currentPrice, a.currency);
+            const costJPY = convertToJPY(a.quantity * a.averageCost, a.currency);
+            const gainPercent = (valueJPY - costJPY) / costJPY * 100;
+            return {
+                銘柄名: a.name,
+                ティッカー: a.ticker,
+                セクター: a.sector,
+                通貨: a.currency,
+                保有数: a.quantity,
+                平均取得単価: a.currency === 'USD' ? `$${a.averageCost}（≈¥${Math.round(a.averageCost * 155).toLocaleString()}）` : `¥${a.averageCost.toLocaleString()}`,
+                現在値: a.currency === 'USD' ? `$${a.currentPrice}（≈¥${Math.round(a.currentPrice * 155).toLocaleString()}）` : `¥${a.currentPrice.toLocaleString()}`,
+                評価額_円: valueJPY,
+                投資額_円: costJPY,
+                損益率: gainPercent.toFixed(2) + '%',
+                損益率_数値: gainPercent,
+            };
+        });
 
-        const totalValue = portfolioSummary.reduce((sum, a) => sum + a.評価額, 0);
-        const totalCost = assets.reduce((sum, a) => sum + a.quantity * a.averageCost, 0);
+        // 全て円換算で合計
+        const totalValue = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency), 0);
+        const totalCost = assets.reduce((sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency), 0);
 
-        // セクター別集計
+        // セクター別集計（円換算）
         const sectorData: Record<string, { value: number; cost: number; count: number }> = {};
         assets.forEach(a => {
             if (!sectorData[a.sector]) {
                 sectorData[a.sector] = { value: 0, cost: 0, count: 0 };
             }
-            sectorData[a.sector].value += a.quantity * a.currentPrice;
-            sectorData[a.sector].cost += a.quantity * a.averageCost;
+            sectorData[a.sector].value += convertToJPY(a.quantity * a.currentPrice, a.currency);
+            sectorData[a.sector].cost += convertToJPY(a.quantity * a.averageCost, a.currency);
             sectorData[a.sector].count++;
         });
 
@@ -232,7 +243,7 @@ export async function POST(request: NextRequest) {
         }));
 
         // 最大損失銘柄と最大利益銘柄
-        const sortedByPerformance = [...portfolioSummary].sort((a, b) => b.損益率 - a.損益率);
+        const sortedByPerformance = [...portfolioSummary].sort((a, b) => b.損益率_数値 - a.損益率_数値);
         const topPerformer = sortedByPerformance[0];
         const worstPerformer = sortedByPerformance[sortedByPerformance.length - 1];
 
@@ -290,10 +301,10 @@ export async function POST(request: NextRequest) {
 | 保有銘柄数 | ${assets.length}銘柄 |
 
 ### ベストパフォーマー
-**${topPerformer?.銘柄名}** (${topPerformer?.ティッカー}): +${topPerformer?.損益率.toFixed(2)}%
+**${topPerformer?.銘柄名}** (${topPerformer?.ティッカー}): +${topPerformer?.損益率_数値.toFixed(2)}%
 
 ### ワーストパフォーマー
-**${worstPerformer?.銘柄名}** (${worstPerformer?.ティッカー}): ${worstPerformer?.損益率.toFixed(2)}%
+**${worstPerformer?.銘柄名}** (${worstPerformer?.ティッカー}): ${worstPerformer?.損益率_数値.toFixed(2)}%
 
 ---
 
