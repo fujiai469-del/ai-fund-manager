@@ -248,25 +248,35 @@ export default function AIAdvisorDisplay({ assets }: AIAdvisorDisplayProps) {
                 {/* コンテンツ */}
                 {isExpanded && (
                     <div className="p-6 animate-fadeIn">
-                        {/* 市場概況 */}
+                        {/* 市場概況カード */}
                         {analysis.marketOverview && (
-                            <div className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                <p className="text-white/70 leading-relaxed">{analysis.marketOverview}</p>
+                            <div className="mb-6 bg-white/[0.03] backdrop-blur-sm rounded-2xl p-5 border border-white/5">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-2 h-2 rounded-full bg-purple-400" />
+                                    <span className="text-white/60 text-sm font-medium">市場概況</span>
+                                </div>
+                                <p className="text-white/80 leading-relaxed">{analysis.marketOverview}</p>
                             </div>
                         )}
 
-                        {/* フル分析（Markdown） */}
-                        <div className="markdown-content">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {analysis.fullAnalysis}
-                            </ReactMarkdown>
+                        {/* フル分析カード（Markdown） */}
+                        <div className="bg-white/[0.02] backdrop-blur-sm rounded-2xl p-5 border border-white/5">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-2 h-2 rounded-full bg-green-400" />
+                                <span className="text-white/60 text-sm font-medium">詳細分析</span>
+                            </div>
+                            <div className="markdown-content">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {analysis.fullAnalysis}
+                                </ReactMarkdown>
+                            </div>
                         </div>
 
                         {/* 再分析ボタン */}
-                        <div className="mt-8 pt-6 border-t border-white/10">
+                        <div className="mt-6 flex justify-center">
                             <button
                                 onClick={runAnalysis}
-                                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-purple-pink text-white font-medium hover:scale-105 transition-transform btn-glow"
+                                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all hover:scale-105"
                             >
                                 <Zap className="w-4 h-4" />
                                 再分析する
