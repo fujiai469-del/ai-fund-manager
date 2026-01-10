@@ -168,19 +168,26 @@ export default function PortfolioTable({
                                 {/* 取得単価 */}
                                 <div className="col-span-4 md:col-span-2 text-right">
                                     <div className="md:hidden text-white/40 text-xs mb-1">取得単価</div>
-                                    <div className="text-white/70">¥{asset.averageCost.toLocaleString()}</div>
+                                    <div className="text-white/70">
+                                        {asset.currency === 'USD' ? '$' : '¥'}{asset.averageCost.toLocaleString()}
+                                    </div>
+                                    {asset.currency === 'USD' && (
+                                        <div className="text-white/30 text-xs">≈¥{(asset.averageCost * 155).toLocaleString()}</div>
+                                    )}
                                 </div>
 
                                 {/* 現在値 */}
                                 <div className="col-span-4 md:col-span-2 text-right">
                                     <div className="md:hidden text-white/40 text-xs mb-1">現在値</div>
-                                    <div className="text-white">¥{asset.currentPrice.toLocaleString()}</div>
+                                    <div className="text-white">
+                                        {asset.currency === 'USD' ? '$' : '¥'}{asset.currentPrice.toLocaleString()}
+                                    </div>
                                     <div className="text-white/40 text-xs">
                                         評価額: ¥{totalValue.toLocaleString()}
                                     </div>
                                 </div>
 
-                                {/* 損益 */}
+                                {/* 損益（円換算済み） */}
                                 <div className="col-span-8 md:col-span-2 text-right">
                                     <div className="md:hidden text-white/40 text-xs mb-1">損益</div>
                                     <div className={`flex items-center justify-end gap-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
@@ -192,7 +199,7 @@ export default function PortfolioTable({
                                             <Minus className="w-4 h-4" />
                                         )}
                                         <span className="font-medium">
-                                            {isPositive ? '+' : ''}¥{gain.toLocaleString()}
+                                            {isPositive ? '+' : ''}¥{Math.round(gain).toLocaleString()}
                                         </span>
                                     </div>
                                     <div className={`text-sm ${isPositive ? 'text-green-400/70' : 'text-red-400/70'}`}>
@@ -226,7 +233,7 @@ export default function PortfolioTable({
                 })}
             </div>
 
-            {/* フッターサマリー */}
+            {/* フッターサマリー（円換算） */}
             <div className="p-4 border-t border-white/10 bg-white/[0.02]">
                 <div className="flex justify-between items-center">
                     <div className="text-white/50 text-sm">
@@ -235,11 +242,11 @@ export default function PortfolioTable({
                     <div className="text-right">
                         {(() => {
                             const totalValue = assets.reduce(
-                                (sum, a) => sum + a.quantity * a.currentPrice,
+                                (sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency),
                                 0
                             );
                             const totalCost = assets.reduce(
-                                (sum, a) => sum + a.quantity * a.averageCost,
+                                (sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency),
                                 0
                             );
                             const totalGain = totalValue - totalCost;
@@ -249,7 +256,7 @@ export default function PortfolioTable({
                             return (
                                 <>
                                     <div className="text-white font-medium">
-                                        ¥{totalValue.toLocaleString()}
+                                        ¥{Math.round(totalValue).toLocaleString()}
                                     </div>
                                     <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                                         {isPositive ? '+' : ''}¥{totalGain.toLocaleString()} ({isPositive ? '+' : ''}{gainPercent.toFixed(2)}%)
