@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { Asset, NewsItem, AIAnalysis } from '@/types';
 
 // モックAI分析（OpenAI APIキー未設定時用）
@@ -179,21 +179,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = process.env.GOOGLE_API_KEY;
 
         // APIキー未設定時はモック分析を返却
         if (!apiKey) {
-            console.log('OpenAI API key not configured, returning mock analysis');
+            console.log('Google API key not configured, returning mock analysis');
             return NextResponse.json({
                 success: true,
                 data: generateMockAnalysis(assets, news || []),
                 isMock: true,
-                message: 'モック分析を使用中。OPENAI_API_KEY環境変数を設定するとAI分析が利用できます。',
+                message: 'モック分析を使用中。GOOGLE_API_KEY環境変数を設定するとAI分析が利用できます。',
             });
         }
 
-        // OpenAI初期化
-        const openai = new OpenAI({ apiKey });
+        // Google Gemini初期化
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
         // ポートフォリオサマリー作成
         const portfolioSummary = assets.map(a => ({
@@ -319,12 +320,7 @@ ${JSON.stringify(newsSummary, null, 2)}
 Markdown形式で、見出しと表を効果的に使用して構造化すること。
 `;
 
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: `あなたはゴールドマン・サックスのシニアポートフォリオマネージャー（運用資産1000億円以上）で、CFA・FRM資格保有者です。
+        const systemPrompt = `あなたはゴールドマン・サックスのシニアポートフォリオマネージャー（運用資産1000億円以上）で、CFA・FRM資格保有者です。
 
 【あなたの専門性】
 - 20年以上の機関投資家経験
@@ -350,18 +346,20 @@ Markdown形式で、見出しと表を効果的に使用して構造化するこ
 - シャープレシオ = (期待リターン - 無リスク金利) / 標準偏差
 
 【出力フォーマット】
-必ずMarkdownの表形式で見やすく構造化すること。絵文字を効果的に使用。`
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            temperature: 0.2,
-            max_tokens: 6000,
+必ずMarkdownの表形式で見やすく構造化すること。絵文字を効果的に使用。`;
+
+        const result = await model.generateContent({
+            contents: [{
+                role: 'user',
+                parts: [{ text: systemPrompt + '\n\n' + prompt }]
+            }],
+            generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8000,
+            },
         });
 
-        const analysisText = completion.choices[0]?.message?.content || '';
+        const analysisText = result.response.text();
 
         // 分析結果からセンチメント判定
         let sentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
