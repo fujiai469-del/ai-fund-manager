@@ -67,7 +67,7 @@ export default function InstitutionalHoldings({ portfolioTickers }: Institutiona
             if (data.success) {
                 setHolders(data.data);
                 setSearchedTicker(ticker);
-                setIsMock(data.isMock);
+                setIsMock(data.source === 'mock');
             } else {
                 setError(data.error || '検索に失敗しました');
                 setHolders([]);
@@ -216,7 +216,7 @@ export default function InstitutionalHoldings({ portfolioTickers }: Institutiona
 
                                     <div className="text-right">
                                         <div className={`flex items-center justify-end gap-1 ${holder.change > 0 ? 'text-green-400' :
-                                                holder.change < 0 ? 'text-red-400' : 'text-white/50'
+                                            holder.change < 0 ? 'text-red-400' : 'text-white/50'
                                             }`}>
                                             {holder.change > 0 ? (
                                                 <TrendingUp className="w-4 h-4" />
@@ -244,7 +244,7 @@ export default function InstitutionalHoldings({ portfolioTickers }: Institutiona
                                     <div className="col-span-2 sm:col-span-1">
                                         <div className="text-white/40 text-xs mb-1">前期比増減</div>
                                         <div className={`font-medium ${holder.change > 0 ? 'text-green-400' :
-                                                holder.change < 0 ? 'text-red-400' : 'text-white/50'
+                                            holder.change < 0 ? 'text-red-400' : 'text-white/50'
                                             }`}>
                                             {holder.change > 0 ? '+' : ''}{formatShares(holder.change)}株
                                         </div>
