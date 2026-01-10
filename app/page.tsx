@@ -7,6 +7,8 @@ import PortfolioChart from '@/components/PortfolioChart';
 import AIAdvisorDisplay from '@/components/AIAdvisorDisplay';
 import AddAssetModal from '@/components/AddAssetModal';
 import GlossaryModal from '@/components/GlossaryModal';
+import BottomNav, { type TabType } from '@/components/BottomNav';
+import InstitutionalHoldings from '@/components/InstitutionalHoldings';
 import type { Asset, AssetFormData } from '@/types';
 import { convertToJPY } from '@/types';
 import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
@@ -103,6 +105,7 @@ export default function Home() {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [isUsingDemo, setIsUsingDemo] = useState(false);
   const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('portfolio');
 
   const STORAGE_KEY = 'ai-fund-manager-assets';
 
@@ -373,72 +376,79 @@ export default function Home() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ポートフォリオサマリー */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
-          <div className="glass rounded-xl p-3 lg:p-4">
-            <div className="text-white/40 text-xs lg:text-sm mb-1">評価額合計</div>
-            <div className="text-lg lg:text-2xl font-bold text-white">
-              ¥{Math.round(totalValue).toLocaleString()}
+      <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+        {activeTab === 'portfolio' ? (
+          <>
+            {/* ポートフォリオサマリー */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+              <div className="glass rounded-xl p-3 lg:p-4">
+                <div className="text-white/40 text-xs lg:text-sm mb-1">評価額合計</div>
+                <div className="text-lg lg:text-2xl font-bold text-white">
+                  ¥{Math.round(totalValue).toLocaleString()}
+                </div>
+              </div>
+              <div className="glass rounded-xl p-3 lg:p-4">
+                <div className="text-white/40 text-xs lg:text-sm mb-1">投資額合計</div>
+                <div className="text-lg lg:text-2xl font-bold text-white/70">
+                  ¥{Math.round(totalCost).toLocaleString()}
+                </div>
+              </div>
+              <div className="glass rounded-xl p-3 lg:p-4">
+                <div className="text-white/40 text-xs lg:text-sm mb-1">含み損益</div>
+                <div
+                  className={`text-lg lg:text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                >
+                  {totalGain >= 0 ? '+' : ''}¥{Math.round(totalGain).toLocaleString()}
+                </div>
+              </div>
+              <div className="glass rounded-xl p-3 lg:p-4">
+                <div className="text-white/40 text-xs lg:text-sm mb-1">リターン</div>
+                <div
+                  className={`text-lg lg:text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                >
+                  {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(1)}%
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="glass rounded-xl p-3 lg:p-4">
-            <div className="text-white/40 text-xs lg:text-sm mb-1">投資額合計</div>
-            <div className="text-lg lg:text-2xl font-bold text-white/70">
-              ¥{Math.round(totalCost).toLocaleString()}
-            </div>
-          </div>
-          <div className="glass rounded-xl p-3 lg:p-4">
-            <div className="text-white/40 text-xs lg:text-sm mb-1">含み損益</div>
-            <div
-              className={`text-lg lg:text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {totalGain >= 0 ? '+' : ''}¥{Math.round(totalGain).toLocaleString()}
-            </div>
-          </div>
-          <div className="glass rounded-xl p-3 lg:p-4">
-            <div className="text-white/40 text-xs lg:text-sm mb-1">リターン</div>
-            <div
-              className={`text-lg lg:text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(1)}%
-            </div>
-          </div>
-        </div>
 
-        {/* メイングリッド - 2カラム（スマホはシングルカラム） */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-          {/* 左カラム - ポートフォリオ */}
-          <div className="lg:col-span-5 space-y-4 lg:space-y-6">
-            <div>
-              <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple" />
-                アセット管理センター
-              </h2>
-              <PortfolioTable
-                assets={assets}
-                onEdit={handleEditAsset}
-                onDelete={handleDeleteAsset}
-                onRefresh={loadAssets}
-                isLoading={isLoading}
-              />
-            </div>
-            <PortfolioChart assets={assets} isLoading={isLoading} />
-          </div>
+            {/* メイングリッド - 2カラム（スマホはシングルカラム） */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+              {/* 左カラム - ポートフォリオ */}
+              <div className="lg:col-span-5 space-y-4 lg:space-y-6">
+                <div>
+                  <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple" />
+                    アセット管理センター
+                  </h2>
+                  <PortfolioTable
+                    assets={assets}
+                    onEdit={handleEditAsset}
+                    onDelete={handleDeleteAsset}
+                    onRefresh={loadAssets}
+                    isLoading={isLoading}
+                  />
+                </div>
+                <PortfolioChart assets={assets} isLoading={isLoading} />
+              </div>
 
-          {/* 右カラム - AIアドバイザー（拡大） */}
-          <div className="lg:col-span-7">
-            <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-pink" />
-              AI分析エンジン
-            </h2>
-            <AIAdvisorDisplay assets={assets} />
-          </div>
-        </div>
+              {/* 右カラム - AIアドバイザー（拡大） */}
+              <div className="lg:col-span-7">
+                <h2 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink" />
+                  AI分析エンジン
+                </h2>
+                <AIAdvisorDisplay assets={assets} />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* 機関投資家タブ */
+          <InstitutionalHoldings portfolioTickers={assets.map(a => a.ticker)} />
+        )}
       </main>
 
       {/* フッター */}
-      <footer className="border-t border-white/5 mt-12">
+      <footer className="border-t border-white/5 mb-20">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-white/30 text-sm">
@@ -450,6 +460,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* 下部ナビゲーション */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* 銘柄追加/編集モーダル */}
       <AddAssetModal
