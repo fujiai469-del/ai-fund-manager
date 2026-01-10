@@ -160,9 +160,18 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        return NextResponse.json(
-            { success: false, error: '機関投資家データの取得に失敗しました' },
-            { status: 500 }
-        );
+        // モックデータにない銘柄はランダム生成でフォールバック
+        const randomHolders: InstitutionalHolder[] = [
+            { holder: 'Vanguard Group Inc', shares: Math.floor(Math.random() * 500000000) + 100000000, dateReported: '2024-12-31', change: Math.floor(Math.random() * 10000000) - 5000000, changePercentage: (Math.random() * 10) - 5, value: Math.floor(Math.random() * 100000000000) },
+            { holder: 'BlackRock Inc', shares: Math.floor(Math.random() * 400000000) + 80000000, dateReported: '2024-12-31', change: Math.floor(Math.random() * 8000000) - 4000000, changePercentage: (Math.random() * 8) - 4, value: Math.floor(Math.random() * 80000000000) },
+            { holder: 'State Street Corporation', shares: Math.floor(Math.random() * 200000000) + 50000000, dateReported: '2024-12-31', change: Math.floor(Math.random() * 5000000) - 2500000, changePercentage: (Math.random() * 6) - 3, value: Math.floor(Math.random() * 50000000000) },
+        ];
+
+        return NextResponse.json({
+            success: true,
+            data: randomHolders,
+            isMock: true,
+            message: 'API接続エラーのためデモデータを使用',
+        });
     }
 }
