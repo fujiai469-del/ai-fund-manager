@@ -379,13 +379,13 @@ export default function Home() {
           <div className="glass rounded-xl p-3 lg:p-4">
             <div className="text-white/40 text-xs lg:text-sm mb-1">評価額合計</div>
             <div className="text-lg lg:text-2xl font-bold text-white">
-              ¥{totalValue.toLocaleString()}
+              ¥{Math.round(totalValue).toLocaleString()}
             </div>
           </div>
           <div className="glass rounded-xl p-3 lg:p-4">
             <div className="text-white/40 text-xs lg:text-sm mb-1">投資額合計</div>
             <div className="text-lg lg:text-2xl font-bold text-white/70">
-              ¥{totalCost.toLocaleString()}
+              ¥{Math.round(totalCost).toLocaleString()}
             </div>
           </div>
           <div className="glass rounded-xl p-3 lg:p-4">
@@ -393,7 +393,7 @@ export default function Home() {
             <div
               className={`text-lg lg:text-2xl font-bold ${totalGain >= 0 ? 'text-green-400' : 'text-red-400'}`}
             >
-              {totalGain >= 0 ? '+' : ''}¥{totalGain.toLocaleString()}
+              {totalGain >= 0 ? '+' : ''}¥{Math.round(totalGain).toLocaleString()}
             </div>
           </div>
           <div className="glass rounded-xl p-3 lg:p-4">
@@ -401,7 +401,7 @@ export default function Home() {
             <div
               className={`text-lg lg:text-2xl font-bold ${totalGainPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}
             >
-              {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(2)}%
+              {totalGainPercent >= 0 ? '+' : ''}{totalGainPercent.toFixed(1)}%
             </div>
           </div>
         </div>
