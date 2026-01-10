@@ -10,6 +10,7 @@ import GlossaryModal from '@/components/GlossaryModal';
 import BottomNav, { type TabType } from '@/components/BottomNav';
 import InstitutionalHoldings from '@/components/InstitutionalHoldings';
 import SimulationPanel from '@/components/SimulationPanel';
+import EarningsCalendar from '@/components/EarningsCalendar';
 import type { Asset, AssetFormData } from '@/types';
 import { convertToJPY } from '@/types';
 import { db, isFirebaseConfigured, COLLECTIONS } from '@/lib/firebase';
@@ -499,6 +500,9 @@ export default function Home() {
               </div>
             </div>
           </>
+        ) : activeTab === 'calendar' ? (
+          /* 決算カレンダータブ */
+          <EarningsCalendar assets={assets} />
         ) : (
           /* 機関投資家タブ */
           <InstitutionalHoldings portfolioTickers={assets.map(a => a.ticker)} />

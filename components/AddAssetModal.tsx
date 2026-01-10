@@ -44,6 +44,7 @@ export default function AddAssetModal({
         quantity: 0,
         averageCost: 0,
         currentPrice: 0,
+        earningsDate: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof AssetFormData, string>>>({});
@@ -60,6 +61,7 @@ export default function AddAssetModal({
                     quantity: editingAsset.quantity,
                     averageCost: editingAsset.averageCost,
                     currentPrice: editingAsset.currentPrice,
+                    earningsDate: editingAsset.earningsDate || '',
                 });
             } else {
                 setFormData({
@@ -70,6 +72,7 @@ export default function AddAssetModal({
                     quantity: 0,
                     averageCost: 0,
                     currentPrice: 0,
+                    earningsDate: '',
                 });
             }
             setErrors({});
@@ -291,6 +294,23 @@ export default function AddAssetModal({
                                 <p className="text-red-400 text-sm mt-1">{errors.currentPrice}</p>
                             )}
                         </div>
+                    </div>
+
+                    {/* 決算日 */}
+                    <div>
+                        <label className="block text-white/70 text-sm font-medium mb-2">
+                            決算日（任意）
+                        </label>
+                        <input
+                            type="date"
+                            name="earningsDate"
+                            value={formData.earningsDate || ''}
+                            onChange={handleChange}
+                            className="input"
+                        />
+                        <p className="text-white/30 text-xs mt-1">
+                            決算カレンダーに表示されます
+                        </p>
                     </div>
 
                     {/* プレビュー */}

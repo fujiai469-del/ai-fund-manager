@@ -20,6 +20,8 @@ export interface Asset {
   currentPrice: number;
   createdAt: Date;
   updatedAt: Date;
+  // 決算日（カレンダー表示用）
+  earningsDate?: string; // YYYY-MM-DD 形式
   // 投資判断メモ（トレードジャーナル）
   note?: {
     title: string;
@@ -37,6 +39,7 @@ export interface AssetFormData {
   quantity: number;
   averageCost: number;
   currentPrice: number;
+  earningsDate?: string; // YYYY-MM-DD 形式
 }
 
 // 円換算ユーティリティ

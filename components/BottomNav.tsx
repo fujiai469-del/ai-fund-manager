@@ -1,8 +1,8 @@
 'use client';
 
-import { Home, Building2 } from 'lucide-react';
+import { Home, Building2, Calendar } from 'lucide-react';
 
-export type TabType = 'portfolio' | 'institutional';
+export type TabType = 'portfolio' | 'institutional' | 'calendar';
 
 interface BottomNavProps {
     activeTab: TabType;
@@ -15,6 +15,11 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             id: 'portfolio' as TabType,
             label: 'ポートフォリオ',
             icon: Home,
+        },
+        {
+            id: 'calendar' as TabType,
+            label: '決算予定',
+            icon: Calendar,
         },
         {
             id: 'institutional' as TabType,
