@@ -20,6 +20,12 @@ export interface Asset {
   currentPrice: number;
   createdAt: Date;
   updatedAt: Date;
+  // 投資判断メモ（トレードジャーナル）
+  note?: {
+    title: string;
+    content: string;
+    updatedAt: Date;
+  };
 }
 
 // Asset form data for creating/updating

@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, TrendingDown, Minus, RefreshCw, FileText } from 'lucide-react';
 import type { Asset } from '@/types';
 import { convertToJPY } from '@/types';
+import NoteModal from './NoteModal';
 
 interface PortfolioTableProps {
     assets: Asset[];
     onEdit: (asset: Asset) => void;
     onDelete: (assetId: string) => void;
+    onUpdateNote: (assetId: string, note: { title: string; content: string; updatedAt: Date }) => void;
     onRefresh?: () => void;
     isLoading?: boolean;
 }
@@ -51,10 +53,12 @@ export default function PortfolioTable({
     assets,
     onEdit,
     onDelete,
+    onUpdateNote,
     onRefresh,
     isLoading = false,
 }: PortfolioTableProps) {
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [noteModalAsset, setNoteModalAsset] = useState<Asset | null>(null);
 
     const calculateGain = (asset: Asset) => {
         const totalValue = convertToJPY(asset.quantity * asset.currentPrice, asset.currency);
@@ -104,6 +108,16 @@ export default function PortfolioTable({
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setNoteModalAsset(asset)}
+                            className={`p-2 rounded-full transition-colors ${asset.note?.content
+                                ? 'text-purple-400 bg-purple-500/10 hover:bg-purple-500/20'
+                                : 'text-white/30 hover:text-purple-400 hover:bg-purple-500/10'
+                                }`}
+                            title={asset.note?.content ? 'メモを編集' : 'メモを追加'}
+                        >
+                            <FileText className="w-4 h-4" />
+                        </button>
                         <button
                             onClick={() => onEdit(asset)}
                             className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-colors"
@@ -252,6 +266,16 @@ export default function PortfolioTable({
                     {/* アクション */}
                     <div className="col-span-1 flex items-center justify-end gap-2">
                         <button
+                            onClick={() => setNoteModalAsset(asset)}
+                            className={`p-2 rounded-lg transition-colors ${asset.note?.content
+                                ? 'text-purple-400 bg-purple-500/10 hover:bg-purple-500/20'
+                                : 'text-white/40 hover:text-purple-400 hover:bg-purple-500/10'
+                                }`}
+                            title={asset.note?.content ? 'メモを編集' : 'メモを追加'}
+                        >
+                            <FileText className="w-4 h-4" />
+                        </button>
+                        <button
                             onClick={() => onEdit(asset)}
                             className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
                             title="編集"
@@ -311,116 +335,132 @@ export default function PortfolioTable({
     const usdAssets = assets.filter(a => a.currency === 'USD');
 
     return (
-        <div className="glass rounded-xl overflow-hidden">
-            {/* ヘッダー */}
-            <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-white/10 text-white/50 text-sm font-medium">
-                <div className="col-span-3">銘柄</div>
-                <div className="col-span-2 text-right">保有数</div>
-                <div className="col-span-2 text-right">取得単価</div>
-                <div className="col-span-2 text-right">現在値</div>
-                <div className="col-span-2 text-right">損益</div>
-                <div className="col-span-1 flex justify-end">
-                    {onRefresh && (
+        <>
+            <div className="glass rounded-xl overflow-hidden">
+                {/* ヘッダー */}
+                <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-white/10 text-white/50 text-sm font-medium">
+                    <div className="col-span-3">銘柄</div>
+                    <div className="col-span-2 text-right">保有数</div>
+                    <div className="col-span-2 text-right">取得単価</div>
+                    <div className="col-span-2 text-right">現在値</div>
+                    <div className="col-span-2 text-right">損益</div>
+                    <div className="col-span-1 flex justify-end">
+                        {onRefresh && (
+                            <button
+                                onClick={onRefresh}
+                                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                title="更新"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* モバイル用更新ボタン */}
+                {onRefresh && (
+                    <div className="md:hidden p-3 border-b border-white/10 flex justify-end">
                         <button
                             onClick={onRefresh}
-                            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                            title="更新"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/60 bg-white/5 hover:bg-white/10 transition-colors text-sm"
                         >
                             <RefreshCw className="w-4 h-4" />
+                            更新
                         </button>
-                    )}
+                    </div>
+                )}
+
+                {/* 日本株セクション */}
+                {jpyAssets.length > 0 && (
+                    <>
+                        <div className="px-4 py-2 bg-blue-500/10 border-b border-white/10">
+                            <span className="text-blue-400 text-sm font-medium">🇯🇵 日本株・ETF ({jpyAssets.length}銘柄)</span>
+                        </div>
+                        {/* モバイル: カード表示 */}
+                        <div className="md:hidden divide-y divide-white/5">
+                            {jpyAssets.map((asset, index) => (
+                                <AssetCard key={asset.id} asset={asset} index={index} />
+                            ))}
+                        </div>
+                        {/* デスクトップ: テーブル表示 */}
+                        <div className="hidden md:block divide-y divide-white/5">
+                            {jpyAssets.map((asset, index) => (
+                                <AssetRow key={asset.id} asset={asset} index={index} />
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {/* 米国株セクション */}
+                {usdAssets.length > 0 && (
+                    <>
+                        <div className="px-4 py-2 bg-green-500/10 border-b border-white/10">
+                            <span className="text-green-400 text-sm font-medium">🇺🇸 米国株 ({usdAssets.length}銘柄)</span>
+                        </div>
+                        {/* モバイル: カード表示 */}
+                        <div className="md:hidden divide-y divide-white/5">
+                            {usdAssets.map((asset, index) => (
+                                <AssetCard key={asset.id} asset={asset} index={index} />
+                            ))}
+                        </div>
+                        {/* デスクトップ: テーブル表示 */}
+                        <div className="hidden md:block divide-y divide-white/5">
+                            {usdAssets.map((asset, index) => (
+                                <AssetRow key={asset.id} asset={asset} index={index} />
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {/* フッターサマリー（円換算） */}
+                <div className="p-4 border-t border-white/10 bg-white/[0.02]">
+                    <div className="flex justify-between items-center">
+                        <div className="text-white/50 text-sm">
+                            合計: {assets.length}銘柄
+                        </div>
+                        <div className="text-right">
+                            {(() => {
+                                const totalValue = assets.reduce(
+                                    (sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency),
+                                    0
+                                );
+                                const totalCost = assets.reduce(
+                                    (sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency),
+                                    0
+                                );
+                                const totalGain = totalValue - totalCost;
+                                const gainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+                                const isPositive = totalGain >= 0;
+
+                                return (
+                                    <>
+                                        <div className="text-white font-medium">
+                                            ¥{Math.round(totalValue).toLocaleString()}
+                                        </div>
+                                        <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                            {isPositive ? '+' : ''}¥{Math.round(totalGain).toLocaleString()} ({isPositive ? '+' : ''}{gainPercent.toFixed(1)}%)
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* モバイル用更新ボタン */}
-            {onRefresh && (
-                <div className="md:hidden p-3 border-b border-white/10 flex justify-end">
-                    <button
-                        onClick={onRefresh}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/60 bg-white/5 hover:bg-white/10 transition-colors text-sm"
-                    >
-                        <RefreshCw className="w-4 h-4" />
-                        更新
-                    </button>
-                </div>
-            )}
-
-            {/* 日本株セクション */}
-            {jpyAssets.length > 0 && (
-                <>
-                    <div className="px-4 py-2 bg-blue-500/10 border-b border-white/10">
-                        <span className="text-blue-400 text-sm font-medium">🇯🇵 日本株・ETF ({jpyAssets.length}銘柄)</span>
-                    </div>
-                    {/* モバイル: カード表示 */}
-                    <div className="md:hidden divide-y divide-white/5">
-                        {jpyAssets.map((asset, index) => (
-                            <AssetCard key={asset.id} asset={asset} index={index} />
-                        ))}
-                    </div>
-                    {/* デスクトップ: テーブル表示 */}
-                    <div className="hidden md:block divide-y divide-white/5">
-                        {jpyAssets.map((asset, index) => (
-                            <AssetRow key={asset.id} asset={asset} index={index} />
-                        ))}
-                    </div>
-                </>
-            )}
-
-            {/* 米国株セクション */}
-            {usdAssets.length > 0 && (
-                <>
-                    <div className="px-4 py-2 bg-green-500/10 border-b border-white/10">
-                        <span className="text-green-400 text-sm font-medium">🇺🇸 米国株 ({usdAssets.length}銘柄)</span>
-                    </div>
-                    {/* モバイル: カード表示 */}
-                    <div className="md:hidden divide-y divide-white/5">
-                        {usdAssets.map((asset, index) => (
-                            <AssetCard key={asset.id} asset={asset} index={index} />
-                        ))}
-                    </div>
-                    {/* デスクトップ: テーブル表示 */}
-                    <div className="hidden md:block divide-y divide-white/5">
-                        {usdAssets.map((asset, index) => (
-                            <AssetRow key={asset.id} asset={asset} index={index} />
-                        ))}
-                    </div>
-                </>
-            )}
-
-            {/* フッターサマリー（円換算） */}
-            <div className="p-4 border-t border-white/10 bg-white/[0.02]">
-                <div className="flex justify-between items-center">
-                    <div className="text-white/50 text-sm">
-                        合計: {assets.length}銘柄
-                    </div>
-                    <div className="text-right">
-                        {(() => {
-                            const totalValue = assets.reduce(
-                                (sum, a) => sum + convertToJPY(a.quantity * a.currentPrice, a.currency),
-                                0
-                            );
-                            const totalCost = assets.reduce(
-                                (sum, a) => sum + convertToJPY(a.quantity * a.averageCost, a.currency),
-                                0
-                            );
-                            const totalGain = totalValue - totalCost;
-                            const gainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
-                            const isPositive = totalGain >= 0;
-
-                            return (
-                                <>
-                                    <div className="text-white font-medium">
-                                        ¥{Math.round(totalValue).toLocaleString()}
-                                    </div>
-                                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                                        {isPositive ? '+' : ''}¥{Math.round(totalGain).toLocaleString()} ({isPositive ? '+' : ''}{gainPercent.toFixed(1)}%)
-                                    </div>
-                                </>
-                            );
-                        })()}
-                    </div>
-                </div>
-            </div>
-        </div>
+            {/* メモ編集モーダル */}
+            <NoteModal
+                isOpen={!!noteModalAsset}
+                onClose={() => setNoteModalAsset(null)}
+                assetName={noteModalAsset?.name || ''}
+                assetTicker={noteModalAsset?.ticker || ''}
+                existingNote={noteModalAsset?.note}
+                onSave={(note) => {
+                    if (noteModalAsset) {
+                        onUpdateNote(noteModalAsset.id, note);
+                    }
+                }}
+            />
+        </>
     );
 }

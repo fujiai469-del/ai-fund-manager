@@ -314,6 +314,16 @@ export default function Home() {
     }
   };
 
+  const handleUpdateNote = (assetId: string, note: { title: string; content: string; updatedAt: Date }) => {
+    setAssets((prev) =>
+      prev.map((a) =>
+        a.id === assetId
+          ? { ...a, note: note.content ? note : undefined, updatedAt: new Date() }
+          : a
+      )
+    );
+  };
+
   const handleEditAsset = (asset: Asset) => {
     setEditingAsset(asset);
     setIsModalOpen(true);
@@ -471,6 +481,7 @@ export default function Home() {
                     assets={assets}
                     onEdit={handleEditAsset}
                     onDelete={handleDeleteAsset}
+                    onUpdateNote={handleUpdateNote}
                     onRefresh={loadAssets}
                     isLoading={isLoading}
                   />
